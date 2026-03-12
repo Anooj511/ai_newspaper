@@ -38,9 +38,23 @@ final List<Map<String, String>> _models = [
 
   Future<void> _loadSettings() async {
     final prefs = await SharedPreferences.getInstance();
+
+    // Valid models list
+    final validModels = [
+      'llama3-3b-8192-specdec',
+      'llama-3.1-8b-instant',
+      'llama-3.3-70b-versatile',
+      'mixtral-8x7b-32768',
+    ];
+
+    final savedModel = prefs.getString('groq_model') ?? 'llama-3.1-8b-instant';
+
     setState(() {
       _apiKeyController.text = prefs.getString('groq_api_key') ?? '';
-      _selectedModel = prefs.getString('groq_model') ?? 'llama3-8b-8192';
+      // If saved model is no longer valid, fall back to default
+      _selectedModel = validModels.contains(savedModel)
+          ? savedModel
+          : 'llama-3.1-8b-instant';
       _selectedLanguage = prefs.getString('language') ?? 'english';
     });
   }
