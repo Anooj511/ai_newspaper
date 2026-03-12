@@ -11,31 +11,34 @@ class GroqService {
     required ArticleModel article,
     required String apiKey,
     required String model,
-    required String language, // 'english', 'malayalam', 'both'
+    required String language,
   }) async {
     try {
       String englishSummary = '';
       String malayalamSummary = '';
 
-      // Get English summary
       if (language == 'english' || language == 'both') {
         englishSummary = await _callGroq(
           apiKey: apiKey,
           model: model,
-          prompt: _buildEnglishPrompt(article.title, article.originalDescription),
+          prompt: _buildEnglishPrompt(
+            article.title,
+            article.originalDescription,
+          ),
         );
       }
 
-      // Get Malayalam summary
       if (language == 'malayalam' || language == 'both') {
         malayalamSummary = await _callGroq(
           apiKey: apiKey,
           model: model,
-          prompt: _buildMalayalamPrompt(article.title, article.originalDescription),
+          prompt: _buildMalayalamPrompt(
+            article.title,
+            article.originalDescription,
+          ),
         );
       }
 
-      // Return updated article
       return ArticleModel(
         title: article.title,
         originalDescription: article.originalDescription,
@@ -49,7 +52,19 @@ class GroqService {
         isSummarized: true,
       );
     } catch (e) {
-      return article; // Return original if summarization fails
+      // Return article with error message visible in summary
+      return ArticleModel(
+        title: article.title,
+        originalDescription: article.originalDescription,
+        aiSummary: 'Summary unavailable: $e',
+        aiSummaryMalayalam: '',
+        sourceName: article.sourceName,
+        sourceId: article.sourceId,
+        url: article.url,
+        category: article.category,
+        publishedAt: article.publishedAt,
+        isSummarized: false,
+      );
     }
   }
 
@@ -60,55 +75,76 @@ class GroqService {
     required String model,
     required String language,
     Function(int current, int total)? onProgress,
+    Function(String error)? onError,
   }) async {
     final summarized = <ArticleModel>[];
 
     for (int i = 0; i < articles.length; i++) {
       onProgress?.call(i + 1, articles.length);
-      final result = await summarizeArticle(
-        article: articles[i],
-        apiKey: apiKey,
-        model: model,
-        language: language,
-      );
-      summarized.add(result);
+      try {
+        final result = await summarizeArticle(
+          article: articles[i],
+          apiKey: apiKey,
+          model: model,
+          language: language,
+        );
+        summarized.add(result);
+      } catch (e) {
+        onError?.call('Article ${i + 1} failed: $e');
+        summarized.add(articles[i]); // Add original on failure
+      }
     }
 
     return summarized;
   }
 
-  // Core API call to Groq
+  // Core Groq API call with full error reporting
   static Future<String> _callGroq({
     required String apiKey,
     required String model,
     required String prompt,
   }) async {
-    final response = await http
-        .post(
-          Uri.parse(_baseUrl),
-          headers: {
-            'Authorization': 'Bearer $apiKey',
-            'Content-Type': 'application/json',
-          },
-          body: jsonEncode({
-            'model': model,
-            'messages': [
-              {'role': 'user', 'content': prompt}
-            ],
-            'max_tokens': 800,
-            'temperature': 0.7,
-          }),
-        )
-        .timeout(const Duration(seconds: 30));
+    if (apiKey.isEmpty) throw Exception('API key is empty');
+
+    // Trim description to avoid token limits
+    final trimmedPrompt = prompt.length > 3000
+        ? prompt.substring(0, 3000)
+        : prompt;
+
+    http.Response response;
+    try {
+      response = await http
+          .post(
+            Uri.parse(_baseUrl),
+            headers: {
+              'Authorization': 'Bearer $apiKey',
+              'Content-Type': 'application/json',
+            },
+            body: jsonEncode({
+              'model': model,
+              'messages': [
+                {'role': 'user', 'content': trimmedPrompt}
+              ],
+              'max_tokens': 800,
+              'temperature': 0.7,
+            }),
+          )
+          .timeout(const Duration(seconds: 30));
+    } catch (e) {
+      throw Exception('Network error: $e');
+    }
 
     if (response.statusCode == 200) {
       final data = jsonDecode(response.body);
       return data['choices'][0]['message']['content'].toString().trim();
     }
-    return '';
+
+    // Show exact API error
+    final errorBody = jsonDecode(response.body);
+    final errorMsg = errorBody['error']?['message'] ?? response.body;
+    throw Exception('Groq API error ${response.statusCode}: $errorMsg');
   }
 
-  // English newspaper style prompt
   static String _buildEnglishPrompt(String title, String description) {
     return '''
 You are a professional newspaper journalist. Write a full newspaper-style article based on the following news:
@@ -126,7 +162,6 @@ Use formal newspaper tone. No bullet points. No headings. Just flowing paragraph
 ''';
   }
 
-  // Malayalam newspaper style prompt
   static String _buildMalayalamPrompt(String title, String description) {
     return '''
 നിങ്ങൾ ഒരു പ്രൊഫഷണൽ മലയാളം പത്രലേഖകൻ ആണ്. താഴെ കൊടുത്തിരിക്കുന്ന വാർത്തയുടെ അടിസ്ഥാനത്തിൽ ഒരു പൂർണ്ണ പത്ര ലേഖനം മലയാളത്തിൽ എഴുതുക:

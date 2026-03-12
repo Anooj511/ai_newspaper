@@ -104,7 +104,7 @@ class _HomeScreenState extends State<HomeScreen> {
     });
 
     // Step 2: Summarize with Groq
-    final summarized = await GroqService.summarizeAll(
+    final summarized = await GroqService.summarizeAll( 
       articles: toSummarize,
       apiKey: _apiKey,
       model: _model,
@@ -114,6 +114,9 @@ class _HomeScreenState extends State<HomeScreen> {
           _summarizeProgress = current;
           _statusMessage = 'Summarizing article $current of $total...';
         });
+      },
+      onError: (error) {
+        _showSnack(error);
       },
     );
 
