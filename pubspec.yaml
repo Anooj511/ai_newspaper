@@ -10,6 +10,8 @@ dependencies:
   flutter:
     sdk: flutter
 
+  url_launcher: ^6.2.6
+
   # Networking
   http: ^1.2.0
   webfeed_revised: ^0.9.0
