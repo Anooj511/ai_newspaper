@@ -80,13 +80,21 @@ class _HomeScreenState extends State<HomeScreen> {
     // Step 1: Fetch RSS feeds
     final fetched = await RssService.fetchFromOutlets(_selectedOutlets);
 
-    // Filter by selected date
+// Filter by selected date
     final filtered = fetched.where((a) =>
       DateHelper.isSameDay(a.publishedAt, _selectedDate)
     ).toList();
 
-    // If no articles for selected date, use all fetched
-    final toSummarize = filtered.isEmpty ? fetched.take(20).toList() : filtered.take(20).toList();
+    // Use filtered if available, otherwise use all fetched
+    // Increased limit to 50 articles
+    final toSummarize = filtered.isNotEmpty
+        ? filtered.take(50).toList()
+        : fetched.take(50).toList();
+
+    // Show message if date filter returned nothing
+    if (filtered.isEmpty && fetched.isNotEmpty) {
+      _showSnack('No articles found for selected date — showing latest available.');
+    }
 
     setState(() {
       _isLoading = false;
