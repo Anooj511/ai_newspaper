@@ -58,3 +58,41 @@ const List<OutletModel> availableOutlets = [
     name: 'The Hindu',
     rssUrl: 'https://www.thehindu.com/feeder/default.rss',
     category: 'India',
+    language: 'English',
+    emoji: '📰',
+  ),
+  OutletModel(
+    id: 'telegraph',
+    name: 'The Telegraph',
+    rssUrl: 'https://www.telegraphindia.com/rss/feeds/latest.xml',
+    category: 'India',
+    language: 'English',
+    emoji: '📰',
+  ),
+
+  // ── WORLD ──
+  OutletModel(
+    id: 'reuters',
+    name: 'Reuters',
+    rssUrl: 'https://feeds.reuters.com/reuters/topNews',
+    category: 'World',
+    language: 'English',
+    emoji: '🌍',
+  ),
+  OutletModel(
+    id: 'aljazeera',
+    name: 'Al Jazeera',
+    rssUrl: 'https://www.aljazeera.com/xml/rss/all.xml',
+    category: 'World',
+    language: 'English',
+    emoji: '🌍',
+  ),
+  OutletModel(
+    id: 'ap',
+    name: 'Associated Press',
+    rssUrl: 'https://feeds.apnews.com/apf-topnews',
+    category: 'World',
+    language: 'English',
+    emoji: '🌍',
+  ),
+];
