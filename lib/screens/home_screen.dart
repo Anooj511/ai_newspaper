@@ -61,72 +61,97 @@ class _HomeScreenState extends State<HomeScreen> {
     });
   }
 
-  Future<void> _generateNewspaper() async {
-    if (_apiKey.isEmpty) {
-      _showSnack('Please add your Groq API key in Settings first!');
-      return;
-    }
-    if (_selectedOutlets.isEmpty) {
-      _showSnack('Please select at least one outlet!');
-      return;
-    }
+Future<void> _generateNewspaper() async {
+  if (_apiKey.isEmpty) {
+    _showSnack('Please add your Groq API key in Settings first!');
+    return;
+  }
+  if (_selectedOutlets.isEmpty) {
+    _showSnack('Please select at least one outlet!');
+    return;
+  }
 
-    setState(() {
-      _isLoading = true;
-      _articles = [];
-      _statusMessage = 'Fetching news from ${_selectedOutlets.length} outlets...';
-    });
+  setState(() {
+    _isLoading = true;
+    _articles = [];
+    _statusMessage = 'Fetching news from ${_selectedOutlets.length} outlets...';
+  });
 
+  try {
     // Step 1: Fetch RSS feeds
     final fetched = await RssService.fetchFromOutlets(_selectedOutlets);
 
-// Filter by selected date
-    final filtered = fetched.where((a) =>
-      DateHelper.isSameDay(a.publishedAt, _selectedDate)
-    ).toList();
+    if (fetched.isEmpty) {
+      setState(() {
+        _isLoading = false;
+        _isSummarizing = false;
+        _statusMessage = '';
+      });
+      _showSnack('No articles found. Check your internet connection.');
+      return;
+    }
 
-    // Use filtered if available, otherwise use all fetched
-    // Increased limit to 50 articles
+    // Step 2: Filter by selected date
+    final filtered = fetched
+        .where((a) => DateHelper.isSameDay(a.publishedAt, _selectedDate))
+        .toList();
+
+    // Use filtered if not empty, otherwise use all fetched
     final toSummarize = filtered.isNotEmpty
-        ? filtered.take(50).toList()
-        : fetched.take(50).toList();
+        ? filtered.take(20).toList()
+        : fetched.take(20).toList();
 
-    // Show message if date filter returned nothing
-    if (filtered.isEmpty && fetched.isNotEmpty) {
-      _showSnack('No articles found for selected date — showing latest available.');
+    if (filtered.isEmpty) {
+      _showSnack(
+        'No articles for selected date — showing latest ${toSummarize.length} articles.',
+      );
     }
 
     setState(() {
       _isLoading = false;
       _isSummarizing = true;
       _summarizeTotal = toSummarize.length;
-      _statusMessage = 'AI is writing your newspaper...';
+      _summarizeProgress = 0;
+      _statusMessage = 'AI is writing your newspaper (0/${toSummarize.length})...';
     });
 
-    // Step 2: Summarize with Groq
-    final summarized = await GroqService.summarizeAll( 
+    // Step 3: Summarize with Groq
+    final summarized = await GroqService.summarizeAll(
       articles: toSummarize,
       apiKey: _apiKey,
       model: _model,
       language: _language,
       onProgress: (current, total) {
-        setState(() {
-          _summarizeProgress = current;
-          _statusMessage = 'Summarizing article $current of $total...';
-        });
+        if (mounted) {
+          setState(() {
+            _summarizeProgress = current;
+            _statusMessage = 'Writing article $current of $total...';
+          });
+        }
       },
       onError: (error) {
-        _showSnack(error);
+        if (mounted) _showSnack(error);
       },
     );
 
-    setState(() {
-      _articles = summarized;
-      _isSummarizing = false;
-      _statusMessage = '';
-    });
+    if (mounted) {
+      setState(() {
+        _articles = summarized;
+        _isSummarizing = false;
+        _statusMessage = '';
+      });
+    }
+  } catch (e) {
+    if (mounted) {
+      setState(() {
+        _isLoading = false;
+        _isSummarizing = false;
+        _statusMessage = '';
+      });
+      _showSnack('Error: $e');
+    }
   }
-
+}
   void _showSnack(String message) {
     ScaffoldMessenger.of(context).showSnackBar(
       SnackBar(
