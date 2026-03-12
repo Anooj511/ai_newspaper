@@ -81,13 +81,16 @@ Future<void> _generateNewspaper() async {
     // Step 1: Fetch RSS feeds
     final fetched = await RssService.fetchFromOutlets(_selectedOutlets);
 
+    // DEBUG — show how many were fetched
+    _showSnack('Fetched ${fetched.length} articles from RSS');
+
     if (fetched.isEmpty) {
       setState(() {
         _isLoading = false;
         _isSummarizing = false;
         _statusMessage = '';
       });
-      _showSnack('No articles found. Check your internet connection.');
+      _showSnack('No articles found. Check internet or try different outlets.');
       return;
     }
 
