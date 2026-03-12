@@ -34,7 +34,7 @@ class _HomeScreenState extends State<HomeScreen> {
   DateTime _selectedDate = DateHelper.today();
   String _language = 'english';
   String _apiKey = '';
-  String _model = 'llama3-8b-8192';
+  String _model = 'llama-3.1-8b-instant';
 
   bool _isLoading = false;
   bool _isSummarizing = false;
@@ -53,7 +53,7 @@ class _HomeScreenState extends State<HomeScreen> {
     final savedIds = prefs.getStringList('selected_outlets') ?? [];
     setState(() {
       _apiKey = prefs.getString('groq_api_key') ?? '';
-      _model = prefs.getString('groq_model') ?? 'llama3-8b-8192';
+      _model = prefs.getString('groq_model') ?? 'llama-3.1-8b-instant';
       _language = prefs.getString('language') ?? 'english';
       _selectedOutlets = savedIds.isEmpty
           ? availableOutlets.toList()
@@ -100,9 +100,15 @@ Future<void> _generateNewspaper() async {
         .toList();
 
     // Use filtered if not empty, otherwise use all fetched
-    final toSummarize = filtered.isNotEmpty
-        ? filtered.take(20).toList()
-        : fetched.take(20).toList();
+// Take top 5 articles per outlet for variety
+    final Map<String, int> outletCount = {};
+    final toSummarize = (filtered.isNotEmpty ? filtered : fetched)
+    .where((a) {
+      outletCount[a.sourceId] = (outletCount[a.sourceId] ?? 0) + 1;
+      return outletCount[a.sourceId]! <= 5;
+    })
+    .take(30)
+    .toList();
 
     if (filtered.isEmpty) {
       _showSnack(

@@ -12,16 +12,17 @@ class SettingsScreen extends StatefulWidget {
 
 class _SettingsScreenState extends State<SettingsScreen> {
   final _apiKeyController = TextEditingController();
-  String _selectedModel = 'llama3-8b-8192';
+  String _selectedModel = 'llama3-3b-8192-specdec';
   String _selectedLanguage = 'english';
   bool _obscureKey = true;
   bool _saved = false;
 
-  final List<Map<String, String>> _models = [
-    {'value': 'llama3-8b-8192', 'label': 'LLaMA 3 8B — Fast'},
-    {'value': 'mixtral-8x7b-32768', 'label': 'Mixtral 8x7B — Smart'},
-    {'value': 'llama3-70b-8192', 'label': 'LLaMA 3 70B — Best'},
-  ];
+final List<Map<String, String>> _models = [
+  {'value': 'llama3-3b-8192-specdec', 'label': 'LLaMA 3 3B (Fast & Free)'},
+  {'value': 'llama-3.1-8b-instant', 'label': 'LLaMA 3.1 8B (Smart)'},
+  {'value': 'llama-3.3-70b-versatile', 'label': 'LLaMA 3.3 70B (Best)'},
+  {'value': 'mixtral-8x7b-32768', 'label': 'Mixtral 8x7B (Balanced)'},
+];
 
   final List<Map<String, String>> _languages = [
     {'value': 'english', 'label': 'English'},
