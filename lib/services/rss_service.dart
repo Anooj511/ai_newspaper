@@ -33,7 +33,7 @@ class RssService {
       for (final item in items) {
         if (item.title == null || item.title!.isEmpty) continue;
 
-        final publishedAt = _parseDate(item.pubDate);
+        final publishedAt = item.pubDate ?? DateTime.now();
 
         articles.add(ArticleModel(
           title: item.title!.trim(),
